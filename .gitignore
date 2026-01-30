@@ -1,0 +1,72 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Rider
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# NuGet
+*.nupkg
+packages/
+
+# Dotnet tool directories
+.tool/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Publish
+publish/
+
+# EF migrations
+**/Migrations/
+
+# Resharper
+_ReSharper*/
+
+# Rider
+.idea/
+
+# JetBrains
+*.iml
+
+# Test result
+TestResults/
+
+# local settings
+appsettings.Development.json
+
+# user secrets
+secrets.json
+
+# Ignore Azure publish artifacts
+*.Publish.xml
+
+# Coverage
+coverage*/
+
+# Temporary files
+*.tmp
+*.temp
+
+# JetBrains Rider
+.idea/
+
+# npm
+node_modules/
+
+# End of .gitignore
