@@ -7,4 +7,9 @@ public class Book
     public string Author { get; set; } = string.Empty;
     public int Year { get; set; }
     public string? Summary { get; set; }
+
+    // True when the book is available for rent
+    public bool IsAvailable { get; set; } = true;
+
+    public List<Rental> Rentals { get; set; } = new();
 }
