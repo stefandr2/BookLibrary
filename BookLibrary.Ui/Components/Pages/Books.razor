@@ -1,0 +1,117 @@
+@page "/books"
+@rendermode InteractiveServer
+@inject LibraryApiClient Api
+
+<PageTitle>Books</PageTitle>
+
+<h1>Books</h1>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <h3 class="mt-3">Catalog</h3>
+        @if (books.Count == 0)
+        {
+            <p><em>No books found.</em></p>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Year</th>
+                    <th>Available</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var book in books)
+                {
+                    <tr>
+                        <td>@book.Title</td>
+                        <td>@book.Author</td>
+                        <td>@book.Year</td>
+                        <td>@(book.IsAvailable ? "Yes" : "No")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+    <div class="col-lg-5">
+        <h3 class="mt-3">Add book</h3>
+        <EditForm Model="newBook" OnValidSubmit="AddBook">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Title</label>
+                <InputText class="form-control" @bind-Value="newBook.Title" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Author</label>
+                <InputText class="form-control" @bind-Value="newBook.Author" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Year</label>
+                <InputNumber class="form-control" @bind-Value="newBook.Year" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Summary</label>
+                <InputTextArea class="form-control" @bind-Value="newBook.Summary" />
+            </div>
+            <button class="btn btn-primary" type="submit" disabled="@isSaving">Add</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private readonly List<Book> books = new();
+    private Book newBook = new();
+    private bool isSaving;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooksAsync();
+    }
+
+    private async Task LoadBooksAsync()
+    {
+        errorMessage = null;
+        var result = await Api.GetBooksAsync();
+        books.Clear();
+        if (result.IsSuccess && result.Data is not null)
+        {
+            books.AddRange(result.Data);
+        }
+        else
+        {
+            errorMessage = result.Error;
+        }
+    }
+
+    private async Task AddBook()
+    {
+        isSaving = true;
+        errorMessage = null;
+
+        var result = await Api.AddBookAsync(newBook);
+        if (result.IsSuccess)
+        {
+            newBook = new Book();
+            await LoadBooksAsync();
+        }
+        else
+        {
+            errorMessage = result.Error;
+        }
+
+        isSaving = false;
+    }
+}

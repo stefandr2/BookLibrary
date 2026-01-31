@@ -1,0 +1,202 @@
+@page "/rentals"
+@rendermode InteractiveServer
+@inject LibraryApiClient Api
+
+<PageTitle>Rentals</PageTitle>
+
+<h1>Rentals</h1>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <h3 class="mb-0">Rental history</h3>
+            <div class="form-check">
+                <InputCheckbox id="activeOnly" class="form-check-input" @bind-Value="activeOnly" @bind-Value:after="LoadRentalsAsync" />
+                <label class="form-check-label" for="activeOnly">Active only</label>
+            </div>
+        </div>
+
+        @if (rentals.Count == 0)
+        {
+            <p class="mt-3"><em>No rentals found.</em></p>
+        }
+        else
+        {
+            <table class="table table-striped mt-3">
+                <thead>
+                <tr>
+                    <th>Book</th>
+                    <th>Borrower</th>
+                    <th>Rented</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var rental in rentals)
+                {
+                    <tr>
+                        <td>@(rental.Book?.Title ?? rental.BookId.ToString())</td>
+                        <td>@(rental.Borrower?.Name ?? rental.BorrowerId.ToString())</td>
+                        <td>@rental.RentDate.ToShortDateString()</td>
+                        <td>@(rental.DueDate?.ToShortDateString() ?? "-")</td>
+                        <td>@(rental.IsActive ? "Active" : "Returned")</td>
+                        <td>
+                            @if (rental.IsActive)
+                            {
+                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ReturnRental(rental.Id)" disabled="@isSaving">
+                                    Return
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+    <div class="col-lg-5">
+        <h3 class="mt-3">Create rental</h3>
+        <EditForm Model="createRental" OnValidSubmit="AddRental">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label class="form-label">Book (available)</label>
+                <InputSelect class="form-select" @bind-Value="createRental.BookId">
+                    <option value="0">Select a book</option>
+                    @foreach (var book in availableBooks)
+                    {
+                        <option value="@book.Id">@book.Title</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Borrower</label>
+                <InputSelect class="form-select" @bind-Value="createRental.BorrowerId">
+                    <option value="0">Select a borrower</option>
+                    @foreach (var borrower in borrowers)
+                    {
+                        <option value="@borrower.Id">@borrower.Name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Due date (optional)</label>
+                <InputDate class="form-control" @bind-Value="createRental.DueDate" />
+            </div>
+            <button class="btn btn-primary" type="submit" disabled="@isSaving">Create rental</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private readonly List<Book> books = new();
+    private readonly List<Book> availableBooks = new();
+    private readonly List<Borrower> borrowers = new();
+    private readonly List<Rental> rentals = new();
+    private bool activeOnly;
+    private bool isSaving;
+    private string? errorMessage;
+    private CreateRentalRequest createRental = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllAsync();
+    }
+
+    private async Task LoadAllAsync()
+    {
+        errorMessage = null;
+
+        var bookResult = await Api.GetBooksAsync();
+        books.Clear();
+        availableBooks.Clear();
+        if (bookResult.IsSuccess && bookResult.Data is not null)
+        {
+            books.AddRange(bookResult.Data);
+            availableBooks.AddRange(bookResult.Data.Where(b => b.IsAvailable));
+        }
+        else
+        {
+            errorMessage = bookResult.Error;
+        }
+
+        var borrowerResult = await Api.GetBorrowersAsync();
+        borrowers.Clear();
+        if (borrowerResult.IsSuccess && borrowerResult.Data is not null)
+        {
+            borrowers.AddRange(borrowerResult.Data);
+        }
+        else
+        {
+            errorMessage = borrowerResult.Error;
+        }
+
+        await LoadRentalsAsync();
+    }
+
+    private async Task LoadRentalsAsync()
+    {
+        var rentalResult = await Api.GetRentalsAsync(activeOnly);
+        rentals.Clear();
+        if (rentalResult.IsSuccess && rentalResult.Data is not null)
+        {
+            rentals.AddRange(rentalResult.Data);
+        }
+        else
+        {
+            errorMessage = rentalResult.Error;
+        }
+    }
+
+    private async Task AddRental()
+    {
+        if (createRental.BookId == 0 || createRental.BorrowerId == 0)
+        {
+            errorMessage = "Select both a book and a borrower.";
+            return;
+        }
+
+        isSaving = true;
+        errorMessage = null;
+
+        var result = await Api.AddRentalAsync(createRental);
+        if (result.IsSuccess)
+        {
+            createRental = new CreateRentalRequest();
+            await LoadAllAsync();
+        }
+        else
+        {
+            errorMessage = result.Error;
+        }
+
+        isSaving = false;
+    }
+
+    private async Task ReturnRental(int id)
+    {
+        isSaving = true;
+        errorMessage = null;
+
+        var result = await Api.ReturnRentalAsync(id);
+        if (result.IsSuccess)
+        {
+            await LoadAllAsync();
+        }
+        else
+        {
+            errorMessage = result.Error;
+        }
+
+        isSaving = false;
+    }
+
+}
