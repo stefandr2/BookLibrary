@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace BookLibrary.Api.Models;
 
 public class Borrower
@@ -7,5 +9,6 @@ public class Borrower
     public string? Email { get; set; }
     public string? Mobile { get; set; }
 
+    [JsonIgnore]
     public List<Rental> Rentals { get; set; } = new();
 }

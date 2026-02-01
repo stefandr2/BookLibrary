@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace BookLibrary.Api.Models;
 
 public class Book
@@ -11,5 +13,6 @@ public class Book
     // True when the book is available for rent
     public bool IsAvailable { get; set; } = true;
 
+    [JsonIgnore]
     public List<Rental> Rentals { get; set; } = new();
 }
